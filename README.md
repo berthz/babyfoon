@@ -11,6 +11,13 @@ Eén app voor beide telefoons. Op de ene kies je **BABY**, op de andere **OUDERS
   vergrendeld scherm. Er staat een permanente melding zolang de babyfoon actief is.
 
 ## Bouwen
+Elke push naar GitHub bouwt automatisch een APK: *Actions → laatste run → Artifacts → babyfoon-1.N*.
+Het versienummer (1.N) staat ook bovenin de app. Alle builds worden met dezelfde sleutel
+ondertekend, zodat een nieuwe versie gewoon over de oude heen installeert. Die sleutel staat
+niet in de repository maar in twee GitHub-secrets (Settings → Secrets and variables → Actions):
+`BABYFOON_KEYSTORE` (keystore als base64) en `BABYFOON_KEY_PASSWORD`.
+
+Lokaal bouwen kan ook:
 Open de map `babyfoon` in Android Studio en kies *Build > Build APK(s)*.
 Of op de commandline (JDK 17 + Android SDK nodig): `gradle assembleDebug`.
 De APK staat dan in `app/build/outputs/apk/debug/app-debug.apk`.

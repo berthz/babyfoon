@@ -60,6 +60,11 @@ public class MainActivity extends Activity {
         title.setGravity(Gravity.CENTER);
         root.addView(title);
 
+        TextView version = new TextView(this);
+        version.setText("Versie " + versionName());
+        version.setGravity(Gravity.CENTER);
+        root.addView(version);
+
         infoView = new TextView(this);
         infoView.setPadding(0, pad, 0, 0);
         root.addView(infoView);
@@ -113,6 +118,14 @@ public class MainActivity extends Activity {
         scroll.addView(root);
         setContentView(scroll);
         requestPermissionsIfNeeded();
+    }
+
+    private String versionName() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            return "?";
+        }
     }
 
     private void requestPermissionsIfNeeded() {

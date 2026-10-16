@@ -19,10 +19,25 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Restore signing key
+        env:
+          BABYFOON_KEYSTORE: ${{ secrets.BABYFOON_KEYSTORE }}
+        run: |
+          if [ -z "$BABYFOON_KEYSTORE" ]; then
+            echo "::error::Secret BABYFOON_KEYSTORE ontbreekt (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          echo "$BABYFOON_KEYSTORE" | base64 -d > app/babyfoon.keystore
+
       - name: Build debug APK
+        env:
+          BABYFOON_KEY_PASSWORD: ${{ secrets.BABYFOON_KEY_PASSWORD }}
         run: gradle assembleDebug --no-daemon
+
+      - name: Name APK after version
+        run: cp app/build/outputs/apk/debug/app-debug.apk babyfoon-1.${{ github.run_number }}.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: babyfoon-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: babyfoon-1.${{ github.run_number }}
+          path: babyfoon-1.${{ github.run_number }}.apk

@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
 }
 
+// Every GitHub build gets a higher number, so Android accepts it as an update.
+def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()
+
 android {
     namespace 'nl.babyfoon'
     compileSdk 34
@@ -10,8 +13,28 @@ android {
         applicationId 'nl.babyfoon'
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode buildNumber + 1
+        versionName "1.${buildNumber}"
+    }
+
+    // Fixed key (from a GitHub secret, never in the repo): without it every GitHub build is
+    // signed with a new random debug key and Android refuses to install it over the previous one.
+    def pw = System.getenv('BABYFOON_KEY_PASSWORD')
+    def keystore = file('babyfoon.keystore')
+    if (pw && keystore.exists()) {
+        signingConfigs {
+            fixed {
+                storeFile keystore
+                storePassword pw
+                keyAlias 'babyfoon'
+                keyPassword pw
+            }
+        }
+        buildTypes {
+            debug {
+                signingConfig signingConfigs.fixed
+            }
+        }
     }
 
     compileOptions {

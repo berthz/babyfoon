@@ -36,7 +36,9 @@ Na 10 seconden zonder verbinding komt er een alarmmelding met trillen en piep (h
 Zie je de melding niet op het lockscreen? Zet dan in Instellingen > Meldingen > Lockscreen
 "Alle meldingen tonen" aan (ook stille meldingen).
 
-In de app staat onder "Gebeurtenissen" wanneer en waarom de verbinding wegviel.
+In de app staat onder "Gebeurtenissen" wanneer en waarom de verbinding wegviel. Met
+**Log delen** stuur je het volledige logboek (ook scherm aan/uit, wifi weg, netwerk geblokkeerd,
+batterij-instellingen) via mail of WhatsApp door.
 
 Werkt automatisch zoeken niet (sommige routers/gastnetwerken blokkeren broadcasts of verkeer
 tussen apparaten), vul dan op de ouder-telefoon het IP-adres in dat op de baby-telefoon staat.

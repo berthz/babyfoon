@@ -47,6 +47,7 @@ public class BabyService extends Service {
     private ServerSocket server;
     private PowerManager.WakeLock wakeLock;
     private final List<WifiManager.WifiLock> wifiLocks = new ArrayList<>();
+    private Diag diag;
 
     /** One parent phone. Has its own writer thread so a dead connection never blocks the microphone. */
     private final class Client {
@@ -90,6 +91,7 @@ public class BabyService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (running) return START_STICKY;
 
+        Net.initLog(this);
         Net.createChannels(this);
         try {
             startForegroundCompat(notification());
@@ -101,7 +103,8 @@ public class BabyService extends Service {
         }
         running = true;
         acquireLocks();
-        Net.log("Baby-telefoon gestart (IP " + Net.localIp() + ")");
+        diag = new Diag(this);
+        diag.start("Baby-telefoon gestart (IP " + Net.localIp() + ")");
 
         new Thread(this::acceptLoop, "accept").start();
         new Thread(this::beaconLoop, "beacon").start();
@@ -249,6 +252,7 @@ public class BabyService extends Service {
     public void onDestroy() {
         if (running) Net.log("Baby-telefoon gestopt");
         running = false;
+        if (diag != null) diag.stop();
         closeQuietly(server);
         for (Client c : clients) c.close();
         clients.clear();

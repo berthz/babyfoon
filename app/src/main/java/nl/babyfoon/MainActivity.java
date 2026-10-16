@@ -48,6 +48,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Net.initLog(this);
         int pad = (int) (24 * getResources().getDisplayMetrics().density);
 
         LinearLayout root = new LinearLayout(this);
@@ -109,6 +110,11 @@ public class MainActivity extends Activity {
         logTitle.setPadding(0, pad, 0, 0);
         root.addView(logTitle);
 
+        Button share = new Button(this);
+        share.setText("Log delen (bijv. mailen of WhatsApp)");
+        share.setOnClickListener(v -> shareLog());
+        root.addView(share);
+
         logView = new TextView(this);
         logView.setTypeface(android.graphics.Typeface.MONOSPACE);
         logView.setTextSize(12);
@@ -118,6 +124,14 @@ public class MainActivity extends Activity {
         scroll.addView(root);
         setContentView(scroll);
         requestPermissionsIfNeeded();
+    }
+
+    private void shareLog() {
+        Intent send = new Intent(Intent.ACTION_SEND)
+                .setType("text/plain")
+                .putExtra(Intent.EXTRA_SUBJECT, "Babyfoon log " + versionName() + " – " + Build.MODEL)
+                .putExtra(Intent.EXTRA_TEXT, Net.readLog());
+        startActivity(Intent.createChooser(send, "Log delen"));
     }
 
     private String versionName() {

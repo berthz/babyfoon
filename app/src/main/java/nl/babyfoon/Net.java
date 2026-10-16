@@ -8,7 +8,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.Inet4Address;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
@@ -41,20 +46,62 @@ final class Net {
 
     private static final ArrayDeque<String> events = new ArrayDeque<>();
     private static final int MAX_EVENTS = 30;
+    private static final long MAX_LOG_BYTES = 256 * 1024;
+    private static File logFile;
 
     private Net() {}
 
-    /** Adds a timestamped line to the event log shown in the app. */
+    /** Enables the log file (kept across restarts, so it can be shared afterwards). */
+    static synchronized void initLog(Context ctx) {
+        if (logFile != null) return;
+        logFile = new File(ctx.getFilesDir(), "log.txt");
+        if (events.isEmpty()) {
+            String[] lines = readLog().split("\n");
+            for (int i = Math.max(0, lines.length - MAX_EVENTS); i < lines.length; i++) {
+                if (!lines[i].isEmpty()) events.addFirst(lines[i]);
+            }
+        }
+    }
+
+    /** Adds a timestamped line to the event log shown in the app and to the log file. */
     static synchronized void log(String msg) {
-        String time = new SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(new Date());
-        events.addFirst(time + "  " + msg);
+        String line = new SimpleDateFormat("dd-MM HH:mm:ss", Locale.ROOT).format(new Date()) + "  " + msg;
+        events.addFirst(line);
         while (events.size() > MAX_EVENTS) events.removeLast();
+        if (logFile == null) return;
+        try {
+            if (logFile.length() > MAX_LOG_BYTES) {
+                File old = new File(logFile.getParentFile(), "log.old.txt");
+                old.delete();
+                logFile.renameTo(old);
+            }
+            try (FileWriter w = new FileWriter(logFile, true)) {
+                w.write(line + "\n");
+            }
+        } catch (IOException ignored) {
+        }
     }
 
     static synchronized String logText() {
         StringBuilder sb = new StringBuilder();
         for (String e : events) sb.append(e).append('\n');
         return sb.toString();
+    }
+
+    /** Whole log file (oldest first), for sharing. */
+    static synchronized String readLog() {
+        if (logFile == null) return logText();
+        StringBuilder sb = new StringBuilder();
+        for (File f : new File[]{new File(logFile.getParentFile(), "log.old.txt"), logFile}) {
+            if (!f.exists()) continue;
+            try {
+                sb.append(new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8));
+            } catch (IOException ignored) {
+            }
+        }
+        // Share sheets choke on huge texts; the end is what matters.
+        int max = 90_000;
+        return sb.length() > max ? sb.substring(sb.length() - max) : sb.toString();
     }
 
     /** First site-local IPv4 address of this phone (the Wi-Fi address). */

@@ -57,6 +57,7 @@ public class ParentService extends Service {
     private PowerManager.WakeLock wakeLock;
     private final List<WifiManager.WifiLock> wifiLocks = new ArrayList<>();
     private WifiManager.MulticastLock multicastLock;
+    private Diag diag;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -67,6 +68,7 @@ public class ParentService extends Service {
             manualIp = (ip == null || ip.trim().isEmpty()) ? null : ip.trim();
         }
 
+        Net.initLog(this);
         Net.createChannels(this);
         Notification n = searchingNotification(false);
         if (Build.VERSION.SDK_INT >= 29) {
@@ -75,7 +77,8 @@ public class ParentService extends Service {
             startForeground(NOTIF_ID, n);
         }
         acquireLocks();
-        Net.log("Ouder-telefoon gestart" + (manualIp != null ? " (IP " + manualIp + ")" : ""));
+        diag = new Diag(this);
+        diag.start("Ouder-telefoon gestart" + (manualIp != null ? " (IP " + manualIp + ")" : ""));
 
         worker = new Thread(this::run, "parent");
         worker.start();
@@ -202,6 +205,9 @@ public class ParentService extends Service {
 
         try (Socket s = new Socket()) {
             socket = s;
+            // Tie the connection to the Wi-Fi network we hold a request on.
+            android.net.Network w = diag.wifi();
+            if (w != null) w.bindSocket(s);
             s.connect(new InetSocketAddress(addr, Net.AUDIO_PORT), 3000);
             s.setSoTimeout(5000); // baby phone sends continuously; silence on the wire = lost
             s.setKeepAlive(true);
@@ -267,6 +273,7 @@ public class ParentService extends Service {
     public void onDestroy() {
         if (running) Net.log("Ouder-telefoon gestopt");
         running = false;
+        if (diag != null) diag.stop();
         Socket s = socket;
         if (s != null) {
             try {

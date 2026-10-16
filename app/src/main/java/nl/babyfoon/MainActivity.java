@@ -17,6 +17,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ public class MainActivity extends Activity {
     private TextView infoView;
     private ProgressBar levelBar;
     private EditText ipField;
+    private TextView logView;
 
     private final Runnable refresh = new Runnable() {
         @Override
@@ -38,6 +40,7 @@ public class MainActivity extends Activity {
             infoView.setText(role + "\nIP van deze telefoon: " + Net.localIp());
             statusView.setText(Net.status);
             levelBar.setProgress(Net.level);
+            logView.setText(Net.logText());
             handler.postDelayed(this, 200);
         }
     };
@@ -95,7 +98,20 @@ public class MainActivity extends Activity {
         battery.setOnClickListener(v -> askIgnoreBatteryOptimizations());
         root.addView(battery);
 
-        setContentView(root);
+        TextView logTitle = new TextView(this);
+        logTitle.setText("Gebeurtenissen");
+        logTitle.setTextSize(16);
+        logTitle.setPadding(0, pad, 0, 0);
+        root.addView(logTitle);
+
+        logView = new TextView(this);
+        logView.setTypeface(android.graphics.Typeface.MONOSPACE);
+        logView.setTextSize(12);
+        root.addView(logView);
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(root);
+        setContentView(scroll);
         requestPermissionsIfNeeded();
     }
 

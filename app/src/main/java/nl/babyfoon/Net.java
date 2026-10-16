@@ -6,16 +6,21 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
+import java.text.SimpleDateFormat;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
-/** Shared constants, network helpers and status shown in the UI. */
+/** Shared constants, network helpers, notifications and status shown in the UI. */
 final class Net {
     static final int AUDIO_PORT = 50505;
     static final int DISCOVERY_PORT = 50506;
@@ -23,14 +28,34 @@ final class Net {
     static final int CHUNK_BYTES = SAMPLE_RATE / 10; // 50 ms of audio
     static final String BEACON = "BABYFOON1";
 
-    static final String CHANNEL_RUN = "run";
-    static final String CHANNEL_ALARM = "alarm";
+    // New ids: importance and lock-screen visibility of an existing channel can't be changed.
+    static final String CHANNEL_STATUS = "status_v2";
+    static final String CHANNEL_ALARM = "alarm_v2";
+
+    static final int GREEN = 0xFF2E7D32;
+    static final int RED = 0xFFC62828;
 
     /** Read by MainActivity to show what's happening. */
     static volatile String status = "Niet actief";
     static volatile int level = 0; // 0..100
 
+    private static final ArrayDeque<String> events = new ArrayDeque<>();
+    private static final int MAX_EVENTS = 30;
+
     private Net() {}
+
+    /** Adds a timestamped line to the event log shown in the app. */
+    static synchronized void log(String msg) {
+        String time = new SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(new Date());
+        events.addFirst(time + "  " + msg);
+        while (events.size() > MAX_EVENTS) events.removeLast();
+    }
+
+    static synchronized String logText() {
+        StringBuilder sb = new StringBuilder();
+        for (String e : events) sb.append(e).append('\n');
+        return sb.toString();
+    }
 
     /** First site-local IPv4 address of this phone (the Wi-Fi address). */
     static String localIp() {
@@ -74,23 +99,57 @@ final class Net {
 
     static void createChannels(Context ctx) {
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);
-        nm.createNotificationChannel(new NotificationChannel(
-                CHANNEL_RUN, "Babyfoon actief", NotificationManager.IMPORTANCE_LOW));
+        nm.deleteNotificationChannel("run");
+        nm.deleteNotificationChannel("alarm");
+
+        // Default importance (not low) so the status is shown on the lock screen; silent.
+        NotificationChannel status = new NotificationChannel(
+                CHANNEL_STATUS, "Status babyfoon", NotificationManager.IMPORTANCE_DEFAULT);
+        status.setSound(null, null);
+        status.enableVibration(false);
+        status.setShowBadge(false);
+        status.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        nm.createNotificationChannel(status);
+
         NotificationChannel alarm = new NotificationChannel(
-                CHANNEL_ALARM, "Verbinding verbroken", NotificationManager.IMPORTANCE_HIGH);
+                CHANNEL_ALARM, "Geen verbinding", NotificationManager.IMPORTANCE_HIGH);
         alarm.enableVibration(true);
+        alarm.setVibrationPattern(new long[]{0, 600, 300, 600, 300, 600});
+        alarm.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        alarm.setBypassDnd(true);
+        alarm.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
+                new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build());
         nm.createNotificationChannel(alarm);
     }
 
-    static Notification notification(Context ctx, String channel, String text) {
+    /** Ongoing, colored status notification that is fully visible on the lock screen. */
+    static Notification statusNotification(Context ctx, String title, String text, boolean ok) {
+        return builder(ctx, CHANNEL_STATUS, title, text)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setColor(ok ? GREEN : RED)
+                .setColorized(true)
+                .setSmallIcon(ok ? android.R.drawable.ic_btn_speak_now
+                        : android.R.drawable.stat_notify_error)
+                .build();
+    }
+
+    static Notification alarmNotification(Context ctx, String title, String text) {
+        return builder(ctx, CHANNEL_ALARM, title, text)
+                .setCategory(Notification.CATEGORY_ALARM)
+                .setColor(RED)
+                .setSmallIcon(android.R.drawable.stat_notify_error)
+                .build();
+    }
+
+    private static Notification.Builder builder(Context ctx, String channel, String title, String text) {
         PendingIntent open = PendingIntent.getActivity(ctx, 0,
                 new Intent(ctx, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
         return new Notification.Builder(ctx, channel)
-                .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-                .setContentTitle("Babyfoon")
+                .setContentTitle(title)
                 .setContentText(text)
-                .setContentIntent(open)
-                .setOngoing(true)
-                .build();
+                .setStyle(new Notification.BigTextStyle().bigText(text))
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setContentIntent(open);
     }
 }

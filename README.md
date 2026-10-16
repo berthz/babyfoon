@@ -23,6 +23,14 @@ De APK staat dan in `app/build/outputs/apk/debug/app-debug.apk`.
 5. Baby-telefoon: **"Dit is de BABY-telefoon"**. Ouder-telefoon: **"Dit is de OUDER-telefoon"**.
 6. Vergrendel gerust beide schermen; liefst beide aan de oplader.
 
+### Status op het lockscreen
+De ouder-telefoon toont een melding op het lockscreen: **groen ✅ Verbonden** of **rood ❌ GEEN VERBINDING**.
+Na 10 seconden zonder verbinding komt er een alarmmelding met trillen en piep (herhaalt elke minuut).
+Zie je de melding niet op het lockscreen? Zet dan in Instellingen > Meldingen > Lockscreen
+"Alle meldingen tonen" aan (ook stille meldingen).
+
+In de app staat onder "Gebeurtenissen" wanneer en waarom de verbinding wegviel.
+
 Werkt automatisch zoeken niet (sommige routers/gastnetwerken blokkeren broadcasts of verkeer
 tussen apparaten), vul dan op de ouder-telefoon het IP-adres in dat op de baby-telefoon staat.
 
